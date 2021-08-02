@@ -1,0 +1,31 @@
+name: App Stats
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "0 */6 * * *"
+
+jobs:
+  app-stats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    steps:
+      - name: Fetch stats
+        uses: pull-app/app-stats-action@latest
+        id: stats
+        with:
+          id: ${{ secrets.PULL_APP_ID }}
+          private_key: ${{ secrets.PULL_APP_PRIVATE_KEY }}
+      - name: Checkou pull-app/stats
+        uses: actions/checkout@v2
+      - name: Commit and push
+        run: |
+          echo '{"subject":"installed","status":"${{ steps.stats.outputs.installations }} times","color":"blue"}' > badges/installed.json
+          echo '{"subject":"","status":"${{ steps.stats.outputs.installations }}","color":"black"}' > badges/installed.plain.json
+          echo '{"subject":"managing","status":"${{ steps.stats.outputs.repositories }} repos","color":"blue"}' > badges/managing.json
+          echo '{"subject":"","status":"${{ steps.stats.outputs.repositories }}","color":"black"}' > badges/managing.plain.json
+          echo '${{ steps.stats.outputs.stats }}' > stats.json
+          git config user.name github-actions
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .
+          git commit -m "Updated: $(date -u +"%D %T %Z")" --allow-empty
+          git push origin HEAD:master
